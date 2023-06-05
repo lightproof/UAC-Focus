@@ -1,44 +1,70 @@
 ;
 ; UAC-Focus
 ;
-; AHK script that focuses UAC window for quick control with keyboard shortcuts.
+; An AutoHotKey script that focuses UAC window for quick control with keyboard shortcuts.
 ;
 ; https://github.com/lightproof/UAC-Focus
 ;
 ;
-; Instructions:
+; How to use:
 ; Run the script with the highest privileges as "NT AUTHORITY\SYSTEM". See GitHub page for more details.
+;
+;
+; Startup parameters:
+; -notify		-	display notification when UAC window gets focused by the script
+; -notifyall	-	also display notification when UAC window appears already focused
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
-; Basics
-	version = v0.2.0
+#SingleInstance Force
+
+
+
+; Vars
+	version = v0.4.0
+	appname = UAC-Focus by lightproof
 	repo = https://github.com/lightproof/UAC-Focus
-	appicon = icon.ico
+	RunMode = silent
+
+
+
+; App icon
+	appicon = %a_scriptdir%/assets/icon.ico
 
 	IfExist, %appicon%
-		Menu, Tray, Icon, icon.ico
-		
+		Menu, Tray, Icon, %appicon%
 
-; Menu & settings
+	
+
+; Command line arguments
+	arg = %1%
+
+	if arg = -notify
+		RunMode = notify
+
+	if arg = -notifyall
+		RunMode = notifyall
+	
+	
+
+; Tray menu
 	Menu, Tray, Tip, UAC-Focus %version%
 	Menu, Tray, Click, 2
 	Menu, Tray, NoStandard
 
-
-; Menu body
 	Menu, Tray, Add, &About, about, :FileMenu
 	Menu, Tray, Default, &About
 	Menu, Tray, Add
-	Menu, Tray, Add, &GitHub page, github
+	Menu, Tray, Add, &Help, help
+	Menu, Tray, Add, &Open file location, OpenLocation
 	Menu, Tray, Add
 	Menu, Tray, Add, E&xit, quit
 
 
 
-; Main loop
+; Main detect and focus loop
 	Loop
 	{
 
@@ -48,13 +74,14 @@
 		{
 
 			WinActivate
-			; TrayTip, UAC-Focus, Window focused, 3, 1		;uncomment for message to appear every time the UAC window is focused
-
+			
+			if RunMode = notify
+				TrayTip, UAC-Focus, Window focused, 3, 1
 		}
 		else
 		{
-
-			; TrayTip, UAC-Focus, Already in focus, 3, 1	;uncomment for message to appear every time the UAC window appears already focused
+			if RunMode = notifyall
+				TrayTip, UAC-Focus, Already in focus, 3, 1
 
 		}
 
@@ -64,14 +91,59 @@
 
 
 
-; Menu targets
+; Subroutines
+	help:
+		MsgBox, 64, %appname%,
+		(LTrim
+		Startup parameters:
+		
+		-notify    -    display notification when UAC window gets focused by the script
+		
+		-notifyall    -    also display notification when UAC window is shown already focused
+		)
+	return
+
+
 	about:
-		MsgBox, 64, UAC-Focus, UAC-Focus by Lightproof, %version%`n`n%repo%	
+		OnMessage(0x53, "WM_HELP")
+		Gui +OwnDialogs
+		
+		SetTimer, ButtonRename, 10
+
+		MsgBox, 0x4040, About,
+		(LTrim
+		%appname% %version%
+		
+		An AutoHotKey script that automatically focuses UAC window for quick control with keyboard shortcuts.
+		
+		%repo%
+		)
+		
+		
+		 WM_HELP() { 
+			Gosub, github
+			WinClose, %appname% ahk_class #32770
+		 }
+	return
+
+
+	ButtonRename: 
+		IfWinNotExist, About aHK_class #32770
+			return
+			
+		SetTimer, ButtonRename, Off 
+		WinActivate 
+		ControlSetText, Button2, &GitHub
 	return
 
 
 	github:
 		run, %repo%
+	return
+
+
+	OpenLocation:
+		run, explorer.exe %a_scriptdir%
 	return
 
 
