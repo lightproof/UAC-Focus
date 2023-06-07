@@ -11,44 +11,44 @@
 ;
 ;
 ; Startup parameters:
-; -notify		-	display notification when UAC window gets focused by the script
-; -notifyall	-	also display notification when UAC window appears already focused
+; -notify           start with "Notify on focus" option enabled
+; -notifyall        start with "Notify on everything" option enabled
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-#SingleInstance Prompt
+#SingleInstance Force
 
 
 ; Vars
-	version = v0.5.0
-	appname = UAC-Focus by lightproof
-	repo = https://github.com/lightproof/UAC-Focus
-	RunMode = silent
-
-	if not RunMode = silent
-		notify_opt = 1
-	Else
-		notify_opt = 0
+	Version = v0.5.2
+	App_Name = UAC-Focus by lightproof
+	App_Icon = %A_ScriptDir%/assets/icon.ico
+	global Repo = "https://github.com/lightproof/UAC-Focus"
 
 
 
-; Command line arguments
-	arg = %1%
-
-	if arg = -notify
-		RunMode = notify
-
-	if arg = -notifyall
-		RunMode = notifyall
+; Set app icon
+	IfExist, %App_Icon%
+		Menu, Tray, Icon, %App_Icon%
 
 
 
-; App icon
-	appicon = %A_ScriptDir%/assets/icon.ico
+; Set notification levels
+	Arg = %1%
 
-	IfExist, %appicon%
-		Menu, Tray, Icon, %appicon%
+	Notify_Lvl = 0		; default
+
+	if Arg = -notify
+		Notify_Lvl = 1
+
+	if Arg = -notifyall
+		Notify_Lvl = 2
+
+
+	Lvl_Name_0 = Never
+	Lvl_Name_1 = On focus
+	Lvl_Name_2 = On everything
 
 
 
@@ -58,31 +58,34 @@
 
 
 ; Elevation check
-	if not A_IsAdmin
-	{
+	Gosub Elevation_check
 
-		try
-		{
 
-			if A_IsCompiled
-				Run *RunAs "%A_ScriptFullPath%" %arg% /restart
 
-			else
-				Run *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%" %arg%
+; Messagebox Text
+	AboutText =
+	(LTrim
+		%App_Name% %Version%
 
-		} catch {
+		An AutoHotKey script that automatically focuses UAC window for quick control with keyboard shortcuts.
 
-			MsgBox, 48, UAC-Focus, The program needs to be run as Administrator!
+		%Repo%
+	)
 
-		}
 
-		ExitApp
+	HelpText =
+	(LTrim
+		Startup parameters:
 
-	}
+		-notify           Start with "Notify on focus" option enabled. This will display notification each time the UAC window gets focused.
+
+		-notifyall        Start with "Notify on everything" option enabled. Same as above, but also display notification if the UAC window has been already focused by the OS.
+		)
 
 
 
 ; Tray menu
+
 	Menu, Tray, Click, 2
 	Menu, Tray, Nostandard
 
@@ -90,20 +93,34 @@
 	Menu, Tray, Default, &About
 	Menu, Tray, Add
 
+	Menu, OptionID, Add, %Lvl_Name_0%, Notify_Toggle
+	Menu, OptionID, Add, %Lvl_Name_1%, Notify_Toggle
+	Menu, OptionID, Add, %Lvl_Name_2%, Notify_Toggle
+	Menu, Tray, Add, &Notify, :OptionID
 
-	Menu, Tray, Add, Notify on focus, Notify_Toggle
-
-	If Notify_Opt = 1
-		Menu, Tray, Check, Notify on focus
-
+	Menu_item_name := Lvl_Name_%Notify_Lvl%
+	Menu, OptionID, Check, %Menu_item_name%
 
 	Menu, Tray, Add
 	Menu, Tray, Add, &Open file location, Open_Location
-
+	
+	
+	Open_Location()
+	{
+		run, explorer %A_ScriptDir%
+	}
+	
+	
 	Menu, Tray, Add, &Help, Help_Msg
-
 	Menu, Tray, Add
-	Menu, Tray, Add, E&Xit, Quit
+	Menu, Tray, Add, E&xit, Exit
+
+
+	Exit()
+	{
+		ExitApp
+	}
+
 
 
 ; Main detect and refocus loop
@@ -117,14 +134,14 @@
 
 			WinActivate
 
-			if (RunMode = "notify" or RunMode = "notifyall")
+			if (Notify_Lvl = "1" or Notify_Lvl = "2")
 				TrayTip, UAC-Focus, Window focused, 3, 1
 
 		}
-		else
+		Else
 		{
 
-			if RunMode = notifyall
+			if Notify_Lvl = 2
 				TrayTip, UAC-Focus, Already in focus, 3, 1
 
 		}
@@ -136,40 +153,83 @@
 
 
 ; Subroutines
+; -------------------------------------
 	Set_Tray_Tooltip:
-		if RunMode = silent
+		Loop, 3
 		{
-			Menu, Tray, Tip, UAC-Focus %version%
-		} Else {
-			Menu, Tray, Tip, UAC-Focus %version%`n( mode: %RunMode% )
+			Indx = %A_Index%
+			Indx := Indx - 1
+
+			Menu_item_name := Lvl_Name_%Indx%
+
+			if Notify_Lvl = %Indx%
+				Menu, Tray, Tip, UAC-Focus %Version%`nNotify: %Menu_item_name%
 		}
 	return
 
 
+
+	Elevation_check:
+		if not A_IsAdmin
+		{
+
+			try
+			{
+
+				if A_IsCompiled
+					Run *RunAs "%A_ScriptFullPath%" %Arg% /restart
+
+				else
+					Run *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%" %Arg%
+
+			}
+			catch
+			{
+
+				MsgBox, 0x30, UAC-Focus, The program needs to be run as Administrator!
+				ExitApp
+
+			}
+
+		}
+	return
+
+
+
 	Notify_Toggle:
-		Menu, Tray, ToggleCheck, Notify on focus
+		Loop, 3
+		{
+			Indx = %A_Index%
+			Indx := Indx - 1
 
-		notify_opt := !notify_opt
+			Menu_item_name := Lvl_Name_%Indx%
 
-		if notify_opt = 1
-			RunMode = notify
-		Else
-			RunMode = silent
+
+			if A_ThisMenuItem = %Menu_item_name%
+			{
+				Menu, OptionID, Check, %Menu_item_name%
+				Notify_Lvl = %Indx%
+			}
+			else
+			{
+				Menu, OptionID, Uncheck, %Menu_item_name%
+			}
+		}
 
 		Gosub Set_Tray_Tooltip
 	return
 
 
+
 	Help_Msg:
-		MsgBox, 64, %appname%,
-		(LTrim
-		Startup parameters:
 
-		-notify       -- Enables "Notify on focus" option by default. The program will display notification each time the UAC window gets focused.
 
-		-notifyall    -- Same as above, but also displays notification if the UAC window have been already focused by the OS.
-		)
+		IfWinNotExist, Help ahk_class #32770
+		{
+			MsgBox, 0x20, Help, %HelpText%
+		}
 	return
+
 
 
 	About:
@@ -178,42 +238,27 @@
 
 		SetTimer, Button_Rename, 10
 
-		MsgBox, 0x4040, About,
-		(LTrim
-		%appname% %version%
+		IfWinNotExist, About ahk_class #32770
+		{
+			MsgBox, 0x4040, About, %AboutText%
 
-		An AutoHotKey script that automatically focuses UAC window for quick control with keyboard shortcuts.
-
-		%repo%
-		)
+		}
 
 
-		 WM_HELP() {
-			Gosub, GitHub
+		 WM_HELP()
+		 {
+			run, %Repo%
 			WinClose, About ahk_class #32770
 		 }
 	return
 
 
+
 	Button_Rename:
-		IfWinNotExist, About aHK_class #32770
+		IfWinNotExist, About ahk_class #32770
 			return
 
 		SetTimer, Button_Rename, Off
 		WinActivate
 		ControlSetText, Button2, &GitHub
 	return
-
-
-	GitHub:
-		run, %repo%
-	return
-
-
-	Open_Location:
-		run, explorer %A_ScriptDir%
-	return
-
-
-	Quit:
-		ExitApp
