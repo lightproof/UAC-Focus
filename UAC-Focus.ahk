@@ -7,7 +7,7 @@
 ;
 ;
 ; How to use:
-; Run the script with the highest privileges as "NT AUTHORITY\SYSTEM". See GitHub page for more details.
+; Run this script with Administrator privileges
 ;
 ;
 ; Startup parameters:
@@ -17,26 +17,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
-#SingleInstance Force
-
+#SingleInstance Prompt
 
 
 ; Vars
-	version = v0.4.0
+	version = v0.5.0
 	appname = UAC-Focus by lightproof
 	repo = https://github.com/lightproof/UAC-Focus
 	RunMode = silent
 
+	if not RunMode = silent
+		notify_opt = 1
+	Else
+		notify_opt = 0
 
 
-; App icon
-	appicon = %a_scriptdir%/assets/icon.ico
-
-	IfExist, %appicon%
-		Menu, Tray, Icon, %appicon%
-
-	
 
 ; Command line arguments
 	arg = %1%
@@ -46,25 +41,72 @@
 
 	if arg = -notifyall
 		RunMode = notifyall
-	
-	
+
+
+
+; App icon
+	appicon = %A_ScriptDir%/assets/icon.ico
+
+	IfExist, %appicon%
+		Menu, Tray, Icon, %appicon%
+
+
+
+; Tray tooltip
+	Gosub Set_Tray_Tooltip
+
+
+
+; Elevation check
+	if not A_IsAdmin
+	{
+
+		try
+		{
+
+			if A_IsCompiled
+				Run *RunAs "%A_ScriptFullPath%" %arg% /restart
+
+			else
+				Run *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%" %arg%
+
+		} catch {
+
+			MsgBox, 48, UAC-Focus, The program needs to be run as Administrator!
+
+		}
+
+		ExitApp
+
+	}
+
+
 
 ; Tray menu
-	Menu, Tray, Tip, UAC-Focus %version%
 	Menu, Tray, Click, 2
-	Menu, Tray, NoStandard
+	Menu, Tray, Nostandard
 
-	Menu, Tray, Add, &About, about, :FileMenu
+	Menu, Tray, Add, &About, About
 	Menu, Tray, Default, &About
 	Menu, Tray, Add
-	Menu, Tray, Add, &Help, help
-	Menu, Tray, Add, &Open file location, OpenLocation
+
+
+	Menu, Tray, Add, Notify on focus, Notify_Toggle
+
+	If Notify_Opt = 1
+		Menu, Tray, Check, Notify on focus
+
+
 	Menu, Tray, Add
-	Menu, Tray, Add, E&xit, quit
+	Menu, Tray, Add, &Open file location, Open_Location
+
+	Menu, Tray, Add, &Help, Help_Msg
+
+	Menu, Tray, Add
+	Menu, Tray, Add, E&Xit, Quit
 
 
-
-; Main detect and focus loop
+; Main detect and refocus loop
 	Loop
 	{
 
@@ -74,12 +116,14 @@
 		{
 
 			WinActivate
-			
-			if RunMode = notify
+
+			if (RunMode = "notify" or RunMode = "notifyall")
 				TrayTip, UAC-Focus, Window focused, 3, 1
+
 		}
 		else
 		{
+
 			if RunMode = notifyall
 				TrayTip, UAC-Focus, Already in focus, 3, 1
 
@@ -92,60 +136,84 @@
 
 
 ; Subroutines
-	help:
+	Set_Tray_Tooltip:
+		if RunMode = silent
+		{
+			Menu, Tray, Tip, UAC-Focus %version%
+		} Else {
+			Menu, Tray, Tip, UAC-Focus %version%`n( mode: %RunMode% )
+		}
+	return
+
+
+	Notify_Toggle:
+		Menu, Tray, ToggleCheck, Notify on focus
+
+		notify_opt := !notify_opt
+
+		if notify_opt = 1
+			RunMode = notify
+		Else
+			RunMode = silent
+
+		Gosub Set_Tray_Tooltip
+	return
+
+
+	Help_Msg:
 		MsgBox, 64, %appname%,
 		(LTrim
 		Startup parameters:
-		
-		-notify    -    display notification when UAC window gets focused by the script
-		
-		-notifyall    -    also display notification when UAC window is shown already focused
+
+		-notify       -- Enables "Notify on focus" option by default. The program will display notification each time the UAC window gets focused.
+
+		-notifyall    -- Same as above, but also displays notification if the UAC window have been already focused by the OS.
 		)
 	return
 
 
-	about:
+	About:
 		OnMessage(0x53, "WM_HELP")
 		Gui +OwnDialogs
-		
-		SetTimer, ButtonRename, 10
+
+		SetTimer, Button_Rename, 10
 
 		MsgBox, 0x4040, About,
 		(LTrim
 		%appname% %version%
-		
+
 		An AutoHotKey script that automatically focuses UAC window for quick control with keyboard shortcuts.
-		
+
 		%repo%
 		)
-		
-		
-		 WM_HELP() { 
-			Gosub, github
-			WinClose, %appname% ahk_class #32770
+
+
+		 WM_HELP() {
+			Gosub, GitHub
+			WinClose, About ahk_class #32770
 		 }
 	return
 
 
-	ButtonRename: 
+	Button_Rename:
 		IfWinNotExist, About aHK_class #32770
 			return
-			
-		SetTimer, ButtonRename, Off 
-		WinActivate 
+
+		SetTimer, Button_Rename, Off
+		WinActivate
 		ControlSetText, Button2, &GitHub
 	return
 
 
-	github:
+	GitHub:
 		run, %repo%
 	return
 
 
-	OpenLocation:
-		run, explorer.exe %a_scriptdir%
+	Open_Location:
+		run, explorer %A_ScriptDir%
 	return
 
 
-	quit:
+	Quit:
 		ExitApp
