@@ -21,7 +21,7 @@
 
 
 ; Vars
-	Version = v0.5.2
+	Version = v0.5.3
 	App_Name = UAC-Focus by lightproof
 	App_Icon = %A_ScriptDir%/assets/icon.ico
 	global Repo = "https://github.com/lightproof/UAC-Focus"
@@ -123,11 +123,16 @@
 
 
 
-; Main detect and refocus loop
+; MAIN DETECT AND FOCUS LOOP
 	Loop
 	{
-
-		WinWait, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
+		WinWait, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe, , 0.5	; TODO: try replacing with a Shell Hook in future?
+		
+		if ErrorLevel
+		{
+			Sleep 250	; delay to reduce polling intencity for potentially lower CPU usage
+			Goto focus_loop_end
+		}
 
 		ifWinNotActive, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
 		{
@@ -148,6 +153,7 @@
 
 		WinWaitClose, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
 
+		focus_loop_end:
 	}
 
 
