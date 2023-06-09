@@ -17,6 +17,9 @@
 #NoEnv
 #SingleInstance Force
 
+SetBatchLines, 2
+Process, Priority,, Normal
+
 
 ; Vars
 	Version := "v0.6.0"
@@ -168,17 +171,24 @@
 	{
 		WinWait, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe, , 0.5		; TODO: try replacing with a Shell Hook in future?
 
-		if ErrorLevel
-		{
-			Sleep 250		; delay to reduce polling intencity for potentially lower CPU usage
-			Goto focus_loop_end
-		}
-
 		if not WinActive ("ahk_class Credential Dialog Xaml Host ahk_exe consent.exe")
 		{
-
 			WinActivate
+			Gosub OnActivateDo
+		}
+		Else
+		{
+			if Notify_Lvl = 2
+				TrayTip, UAC-Focus, Already in focus, 3, 1
+		}
 
+		WinWaitClose, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
+	}
+
+
+
+; Subroutines-------------------------------------
+	OnActivateDo:
 			if (Notify_Lvl = "1" or Notify_Lvl = "2")
 			{
 				TrayTip, UAC-Focus, Window focused, 3, 1
@@ -189,24 +199,10 @@
 						SoundBeep, , 100
 				}
 			}
-
-		}
-		Else
-		{
-
-			if Notify_Lvl = 2
-				TrayTip, UAC-Focus, Already in focus, 3, 1
-
-		}
-
-		WinWaitClose, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
-
-		focus_loop_end:
-	}
-
-
-
-; Subroutines-------------------------------------
+	return			
+	
+	
+; ----------------------
 	Set_Tray_Tooltip:
 		Loop, 3
 		{
