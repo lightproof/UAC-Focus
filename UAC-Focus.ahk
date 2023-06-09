@@ -22,7 +22,7 @@ Process, Priority,, Normal
 
 
 ; Vars
-	Version := "v0.6.0"
+	Version := "v0.6.1"
 	App_Name := "UAC-Focus by lightproof"
 	App_Icon := A_ScriptDir "/assets/icon.ico"
 	global Repo := "https://github.com/lightproof/UAC-Focus"
@@ -120,9 +120,9 @@ Process, Priority,, Normal
 ; Tray menu
 	Menu, Tray, Click, 2
 	Menu, Tray, Nostandard
-
 	Menu, Tray, Add, &About, About
 	Menu, Tray, Default, &About
+	Menu, Tray, Icon, &About, %A_Windir%\system32\SHELL32.dll, 278
 	Menu, Tray, Add
 
 	; "Notify" submenu
@@ -132,6 +132,7 @@ Process, Priority,, Normal
 	Menu, OptionID, Add
 	Menu, OptionID, Add, Beep on focus, Notify_Toggle
 	Menu, Tray, Add, &Notify, :OptionID
+	; Menu, Tray, Icon, &Notify, %A_Windir%\system32\SHELL32.dll, 222
 
 
 	Menu_item_name := Lvl_Name_%Notify_Lvl%
@@ -146,6 +147,7 @@ Process, Priority,, Normal
 
 	Menu, Tray, Add
 	Menu, Tray, Add, &Open file location, Open_Location
+	Menu, Tray, Icon, &Open file location, %A_Windir%\system32\SHELL32.dll, 56
 
 
 	Open_Location()
@@ -155,8 +157,10 @@ Process, Priority,, Normal
 
 
 	Menu, Tray, Add, &Help, Help_Msg
+	Menu, Tray, Icon, &Help, %A_Windir%\system32\SHELL32.dll, 24
 	Menu, Tray, Add
 	Menu, Tray, Add, E&xit, Exit
+	; Menu, Tray, Icon, E&xit, %A_Windir%\system32\SHELL32.dll, 132
 
 
 	Exit()
@@ -169,7 +173,11 @@ Process, Priority,, Normal
 ; MAIN DETECT AND FOCUS LOOP
 	Loop
 	{
-		WinWait, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe, , 0.5		; TODO: try replacing with a Shell Hook in future?
+		WinWait, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
+		
+		sleep 100
+		
+		TrayTip, UAC-Focus, slept, 3, 1
 
 		if not WinActive ("ahk_class Credential Dialog Xaml Host ahk_exe consent.exe")
 		{
@@ -178,6 +186,8 @@ Process, Priority,, Normal
 		}
 		Else
 		{
+			WinActivate
+
 			if Notify_Lvl = 2
 				TrayTip, UAC-Focus, Already in focus, 3, 1
 		}
