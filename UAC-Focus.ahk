@@ -105,6 +105,10 @@ Process, Priority,, Normal
 
 		if Arg = -beep
 			global Beep := "On"
+			
+		if Arg = -beepall
+			global Beep := "All"
+			
 
 		if Arg = -noflash
 			global TrayIconFlash := 0
@@ -145,7 +149,7 @@ Process, Priority,, Normal
 	Menu, OptionID, Check, %Menu_item_name%		; check appropreate Notify_Lvl
 
 
-	if Beep = On		; check/uncheck beep menu
+	if not Beep = Off							; check/uncheck beep menu
 		Menu, OptionID, Check, Beep on focus
 	else
 		Menu, OptionID, Uncheck, Beep on focus
@@ -204,7 +208,7 @@ Loop
 
 				if WinActive (ahk_id Window_Handle)
 				{
-					if (Notify_Lvl = "1" or Notify_Lvl = "2")
+					if (Notify_Lvl = "1" or Notify_Lvl = "2" and Beep = "All")
 						soundbeep, , 100
 
 					if Notify_Lvl = 2
@@ -264,7 +268,7 @@ Loop
 		{
 			TrayTip, UAC-Focus, Window focused, 3, 1
 
-			if Beep = On
+			if not Beep = Off
 			{
 				Loop, 2
 					SoundBeep, , 100
@@ -323,7 +327,7 @@ Loop
 		{
 			Menu, OptionID, ToggleCheck, Beep on focus
 
-			if Beep = Off
+			if not Beep = On
 			{
 				Beep = On
 
@@ -332,6 +336,7 @@ Loop
 			}
 			else
 				Beep = Off
+
 		}
 		else
 		{
