@@ -170,30 +170,62 @@ Process, Priority,, Normal
 
 
 
-; MAIN DETECT AND FOCUS LOOP
-	Loop
+; Shell hook
+Gui +LastFound
+hWnd := WinExist()
+DetectHiddenWindows, On
+
+
+DllCall( "RegisterShellHookWindow", UInt,hWnd )
+MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
+OnMessage( MsgNum, "ShellMessage" )
+Return		; you can wrap the following into a loop and do without #Persistent
+
+
+; Main Detect And Focus Loop
+Loop
+{
+	ShellMessage( wParam,lParam )
 	{
-		WinWait, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
-		
-		sleep 100
-		
-		TrayTip, UAC-Focus, slept, 3, 1
-
-		if not WinActive ("ahk_class Credential Dialog Xaml Host ahk_exe consent.exe")
+		If ( wParam = 1 )
 		{
-			WinActivate
-			Gosub OnActivateDo
-		}
-		Else
-		{
-			WinActivate
+			WinGet, process, ProcessName, ahk_id %lParam%
+			WinGetClass, class, ahk_id %lParam%
+			
+			if InStr(class, "Credential Dialog Xaml Host") and InStr(process, "consent.exe")
+			{
 
-			if Notify_Lvl = 2
-				TrayTip, UAC-Focus, Already in focus, 3, 1
-		}
+				if not WinActive ("ahk_id" %lParam%)
+				{
+					sleep 100
 
-		WinWaitClose, ahk_class Credential Dialog Xaml Host ahk_exe consent.exe
+					WinActivate
+					Gosub OnActivateDo
+				}
+				Else
+				{
+					if (Notify_Lvl = "1" or Notify_Lvl = "2")
+					soundbeep, , 100
+
+					TrayTip, %process%,
+					(LTrim
+					N
+					class = %class%
+					hWnd  = %lParam%
+					)
+
+					; WinActivate
+					if Notify_Lvl = 2
+						TrayTip, UAC-Focus, Already in focus, 3, 1
+				}
+
+				WinWaitClose, ahk_id %lParam%
+				
+			}
+								
+		}
 	}
+}
 
 
 
