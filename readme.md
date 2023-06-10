@@ -28,14 +28,22 @@ Start with **Notify on focus** enabled. This will display notification each time
 
 `-notifyall`
 
-Start with **Notify always** enabled. Same as above, but also display notification if the UAC window has been already focused by the OS.
+Start with **Notify always** enabled. Same as above, but also display notification if the UAC window pops up already focused by the OS.
 
 `-beep`
 
 Start with **Beep on focus** enabled. This will sound two short beeps each time the UAC window gets focused.
 
+`-beepall`
+
+Same as above, but also beep once when the UAC window pops up already focused by the OS.
+
 `-showtip`
 
 Display current settings in a tray tooltip at script startup.
+
+`-noflash`
+
+Do not briefly change tray icon when the UAC window gets focused.
 
 [^1]: this is a default for a non-localized (i.e. english) Windows UI. If the UI is in another language, the letter corresponding to each option can be found out by pressing <kbd>Alt</kbd> twice while UAC window is open.
