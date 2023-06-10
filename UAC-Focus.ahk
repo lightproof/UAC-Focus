@@ -90,31 +90,29 @@ Process, Priority,, Normal
 		Arg := %A_Index%
 
 		if Arg = -notify
-			Notify_Lvl = 1
+			global Notify_Lvl := 1
 
 		if Arg = -notifyall
-			Notify_Lvl = 2
+			global Notify_Lvl := 2
 
 		if Arg = -showtip
 			StartupTip = 1
 
 		if Arg = -beep
-			Beep = On
+			global Beep := "On"
 
 	}
 
 	
-	
-; Set and/or show the tooltip on startup
-	if A_IsAdmin and if StartupTip = 1
-		TrayTip, UAC-Focus %Version%, Notify: %Menu_item_name%`nBeep: %Beep%, 3, 0x1
-
-	Gosub Set_Tray_Tooltip
-
-
 ; Request process elevation if not admin
 	Gosub Elevation_check
 
+
+; Set and/or show the tooltip on startup
+	Gosub Set_Tray_Tooltip
+	
+	if (A_IsAdmin and StartupTip = 1)
+		TrayTip, UAC-Focus %Version%, Notify: %Menu_item_name%`nBeep: %Beep%, 3, 0x1
 
 
 ; Tray menu
@@ -179,7 +177,6 @@ DetectHiddenWindows, On
 DllCall( "RegisterShellHookWindow", UInt,hWnd )
 MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
 OnMessage( MsgNum, "ShellMessage" )
-Return		; you can wrap the following into a loop and do without #Persistent
 
 
 ; Main Detect And Focus Loop
@@ -191,35 +188,39 @@ Loop
 		{
 			WinGet, process, ProcessName, ahk_id %lParam%
 			WinGetClass, class, ahk_id %lParam%
-			
-			if InStr(class, "Credential Dialog Xaml Host") and InStr(process, "consent.exe")
+			global Window_Handle := lParam
+
+
+			if (InStr(class, "Credential Dialog Xaml Host") and InStr(process, "consent.exe"))
 			{
 
-				if not WinActive ("ahk_id" %lParam%)
-				{
-					sleep 100
-
-					WinActivate
-					Gosub OnActivateDo
-				}
-				Else
+				if WinActive (ahk_id Window_Handle)
 				{
 					if (Notify_Lvl = "1" or Notify_Lvl = "2")
-					soundbeep, , 100
+						soundbeep, , 100
 
-					TrayTip, %process%,
-					(LTrim
-					N
-					class = %class%
-					hWnd  = %lParam%
-					)
-
-					; WinActivate
 					if Notify_Lvl = 2
 						TrayTip, UAC-Focus, Already in focus, 3, 1
 				}
+				else
+				{
+					Loop, 40		; check if active for the next ≈600ms
+					{
+						if not WinActive (ahk_id Window_Handle)
+						{
+							sleep 100		; this helps with consistency for some reason
+							WinActivate (ahk_id Window_Handle)
+							continue
+						}
+						else
+						{
+							Gosub OnActivateDo
+							break
+						}
+					}
+				}
 
-				WinWaitClose, ahk_id %lParam%
+				; WinWaitClose, ahk_id %Window_Handle%	; if enabled, stops working with multiple windows
 				
 			}
 								
@@ -231,6 +232,7 @@ Loop
 
 ; Subroutines-------------------------------------
 	OnActivateDo:
+	
 			if (Notify_Lvl = "1" or Notify_Lvl = "2")
 			{
 				TrayTip, UAC-Focus, Window focused, 3, 1
@@ -248,9 +250,7 @@ Loop
 	Set_Tray_Tooltip:
 		Loop, 3
 		{
-			Indx = %A_Index%
-			Indx := Indx - 1	; because Notify_Lvl starts with 0
-
+			Indx := A_Index - 1		; because Notify_Lvl starts with 0
 
 			if Notify_Lvl = %Indx%
 			{
