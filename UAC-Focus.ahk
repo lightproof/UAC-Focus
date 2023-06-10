@@ -16,14 +16,12 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
+; startup settings
 	#NoEnv
 	#SingleInstance Force
 	#WinActivateForce
-
 	Process, Priority,, Normal
 	SetBatchLines, 2
-
 
 ; Vars
 	Version := "v0.6.1"
@@ -32,15 +30,11 @@
 	global Tray_Icon_Green := "HICON:*" . icon_green()
 	global Repo := "https://github.com/lightproof/UAC-Focus"
 	Own_PID := DllCall("GetCurrentProcessId")
-
 	AboutWindow := "About ahk_class #32770 ahk_pid" Own_PID
 	HelpWindow := "Help ahk_class #32770 ahk_pid" Own_PID
 
-
-
 ; Set app tray icon
 	Gosub TrayIconSet
-
 
 ; Set defaults
 	global Notify_Lvl = 0
@@ -48,12 +42,10 @@
 	global Beep = Off
 	global TrayIconFlash = 1
 
-
 ; Set string names
 	Lvl_Name_0 = Never
 	Lvl_Name_1 = On focus
 	Lvl_Name_2 = Always
-
 
 ; About window text
 	AboutText =
@@ -81,7 +73,7 @@
 		-beep
 		Start with "Beep on focus" enabled by default.
 		This will sound two short beeps each time the UAC window gets focused.
-		
+
 		-beepall
 		Same as above, but also beep once when the UAC window pops up already focused by the OS.
 
@@ -92,7 +84,6 @@
 		Do not briefly change tray icon when the UAC window gets focused.
 		)
 
-
 ; Set startup parameters
 	Loop, %0%		; do for each parameter
 	{
@@ -100,43 +91,53 @@
 		Arg := %A_Index%
 
 		if Arg = -notify
+		{
 			global Notify_Lvl := 1
+		}
 
 		if Arg = -notifyall
+		{
 			global Notify_Lvl := 2
+		}
 
 		if Arg = -showtip
+		{
 			StartupTip = 1
+		}
 
 		if Arg = -beep
+		{
 			global Beep := "On"
-			
+		}
+
 		if Arg = -beepall
+		{
 			global Beep := "All"
-			
+		}
+
 		if Arg = -noflash
+		{
 			global TrayIconFlash := 0
-
+		}
 	}
-
 
 ; Request process elevation if not admin
 	Gosub Elevation_check
-
 
 ; Set and/or show the tooltip on startup
 	Gosub Set_Tray_Tooltip
 
 	if (A_IsAdmin and StartupTip = 1)
+	{
 		TrayTip, UAC-Focus %Version%, Notify: %Menu_item_name%`nBeep: %Beep%, 3, 0x1
-
+	}
 
 ; Tray menu
 	Menu, Tray, Click, 2
 	Menu, Tray, Standard		; Standard/NoStandard  = debugging / regular
 	Menu, Tray, Add, &About, About
 	Menu, Tray, Default, &About
-	Menu, Tray, Icon, &About, %A_Windir%\system32\SHELL32.dll, 278
+	Menu, Tray, Icon, &About, %A_Windir%\system32\SHELL32.dll, 278		; letter «i» in blue circle
 	Menu, Tray, Add
 
 	; "Notify" submenu
@@ -146,54 +147,50 @@
 	Menu, OptionID, Add
 	Menu, OptionID, Add, Beep on focus, Notify_Toggle
 	Menu, Tray, Add, &Notify, :OptionID
-	; Menu, Tray, Icon, &Notify, %A_Windir%\system32\SHELL32.dll, 222		; «i» balloon tip
+	; Menu, Tray, Icon, &Notify, %A_Windir%\system32\SHELL32.dll, 222		; white balloon tip with «i»
 
-
+	; check matching Notify_Lvl entry
 	Menu_item_name := Lvl_Name_%Notify_Lvl%
-	Menu, OptionID, Check, %Menu_item_name%		; check matching Notify_Lvl entry
+	Menu, OptionID, Check, %Menu_item_name%
 
-
-	if not Beep = Off							; check/uncheck beep menu
+	; check/uncheck beep menu
+	if not Beep = Off
+	{
 		Menu, OptionID, Check, Beep on focus
+	}
 	else
+	{
 		Menu, OptionID, Uncheck, Beep on focus
-
+	}
 
 	Menu, Tray, Add
 	Menu, Tray, Add, &Open file location, Open_Location
-	Menu, Tray, Icon, &Open file location, %A_Windir%\system32\SHELL32.dll, 56
-
+	Menu, Tray, Icon, &Open file location, %A_Windir%\system32\SHELL32.dll, 56	; document under loupe
 
 	Open_Location()
 	{
 		run, explorer %A_ScriptDir%
 	}
 
-
 	Menu, Tray, Add, &Help, Help_Msg
-	Menu, Tray, Icon, &Help, %A_Windir%\system32\SHELL32.dll, 24
+	Menu, Tray, Icon, &Help, %A_Windir%\system32\SHELL32.dll, 24		; «?» mark in blue circle
 	Menu, Tray, Add
 	Menu, Tray, Add, E&xit, Exit
-	; Menu, Tray, Icon, E&xit, %A_Windir%\system32\SHELL32.dll, 132
-
+	; Menu, Tray, Icon, E&xit, %A_Windir%\system32\SHELL32.dll, 132		; red «X» mark
 
 	Exit()
 	{
 		ExitApp
 	}
 
-
-
 ; Shell hook
 Gui +LastFound
 hWnd := WinExist()
 DetectHiddenWindows, On
 
-
 DllCall( "RegisterShellHookWindow", UInt,hWnd )
 MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
 OnMessage( MsgNum, "ShellMessage" )
-
 
 ; Main Detect And Focus Loop
 	ShellMessage( wParam,lParam )
@@ -204,17 +201,21 @@ OnMessage( MsgNum, "ShellMessage" )
 			WinGetClass, class, ahk_id %lParam%
 			global Window_Handle := lParam
 
-
 			if (InStr(class, "Credential Dialog Xaml Host") and InStr(process, "consent.exe"))
 			{
 
 				if not WinActive (ahk_id Window_Handle)
 				{
+
 					if (Notify_Lvl = "1" or Notify_Lvl = "2" and Beep = "All")
+					{
 						soundbeep, , 100
+					}
 
 					if Notify_Lvl = 2
+					{
 						TrayTip, UAC-Focus, Already in focus, 3, 1
+					}
 				}
 				else
 				{
@@ -224,31 +225,31 @@ OnMessage( MsgNum, "ShellMessage" )
 				}
 
 				; WinWaitClose, ahk_id %Window_Handle%	; if enabled, stops working with multiple windows
-
 			}
-
 		}
 	}
 
-
-
-; Subroutines -----------------------------------
+; -------------------------------------
+; Subroutines
 	TrayIconSet:
+
 		if FileExist(Tray_Icon)
+		{
 			Menu, Tray, Icon, %Tray_Icon%
+		}
+
 	return
-
-
-; ----------------------
+; Subroutine
 	TrayIconFlash:
+
 		SetTimer, TrayIconFlash, Off
 
 		; Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102	; green shield with checkmark
 		; Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239	; blue circled arrows
 		; Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297	; green checkmark
 
-
-		Loop, 4		; flash tray icon
+		; flash tray icon
+		Loop, 4
 		{
 			Menu, Tray, Icon, %Tray_Icon_Green%		; use embedded icon data
 			sleep 125
@@ -258,9 +259,9 @@ OnMessage( MsgNum, "ShellMessage" )
 
 	return
 
-
-; ----------------------
+; Subroutine
 	OnActivateDo:
+
 		if (Notify_Lvl = "1" or Notify_Lvl = "2")
 		{
 			TrayTip, UAC-Focus, Window focused, 3, 1
@@ -273,12 +274,15 @@ OnMessage( MsgNum, "ShellMessage" )
 		}
 
 		if TrayIconFlash
+		{
 			SetTimer, TrayIconFlash, 10
+		}
+
 	return
 
-
-; ----------------------
+; Subroutine
 	Set_Tray_Tooltip:
+
 		Loop, 3
 		{
 			Indx := A_Index - 1		; because Notify_Lvl starts with 0
@@ -289,11 +293,12 @@ OnMessage( MsgNum, "ShellMessage" )
 				Menu, Tray, Tip, UAC-Focus %Version%`nNotify: %Menu_item_name%`nBeep: %Beep%
 			}
 		}
+
 	return
 
-
-; ----------------------
+; Subroutine
 	Elevation_check:
+
 		if not A_IsAdmin
 		{
 
@@ -301,117 +306,115 @@ OnMessage( MsgNum, "ShellMessage" )
 			{
 
 				if A_IsCompiled
+				{
 					Run *RunAs "%A_ScriptFullPath%" %Args% /restart
+				}
 				else
+				{
 					Run *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%" %Args%
-
+				}
 			}
 			catch
 			{
-
 				MsgBox, 0x30, UAC-Focus, The program needs to be run as Administrator!
 				ExitApp
-
 			}
-
 		}
+
 	return
 
-
-; ----------------------
+; Subroutine
 	Notify_Toggle:
+
 		if A_ThisMenuItem = Beep on focus		; Beep toggle
 		{
-		
 			Menu, OptionID, ToggleCheck, Beep on focus
-
 
 			if not Beep = On
 			{
-
 				Beep = On
-
-				Loop, 2
-					SoundBeep, , 100
-
+				SoundBeep, , 100
+				SoundBeep, , 100
 			}
 			else
+			{
 				Beep = Off
-
+			}
 		}
 		else
 		{
 
-			Loop, 3		; notify toggle
+			; notify toggle
+			Loop, 3
 			{
-
 				Indx = %A_Index%
 				Indx := Indx - 1
-
 				Menu_item_name := Lvl_Name_%Indx%
-
 
 				if A_ThisMenuItem = %Menu_item_name%
 				{
-
 					Menu, OptionID, Check, %Menu_item_name%
 					Notify_Lvl = %Indx%
-
 				}
 				else
 				{
-
 					Menu, OptionID, Uncheck, %Menu_item_name%
-
 				}
 			}
-
 		}
 
 		Gosub Set_Tray_Tooltip
+
 	return
 
-
-; ----------------------
+; Subroutine
 	Help_Msg:
+
 		If not WinExist(HelpWindow)
+		{
 			MsgBox, 0x20, Help, %HelpText%
+		}
 		else
+		{
 			WinActivate
+		}
+
 	return
 
-
-; ----------------------
+; Subroutine
 	About:
-		OnMessage(0x53, "WM_HELP")		; "Help" button control
+
+		; "Help" button control
+		OnMessage(0x53, "WM_HELP")
 		Gui +OwnDialogs
 
-			SetTimer, Button_Rename, 10
+		SetTimer, Button_Rename, 10
 
 		If not WinExist(AboutWindow)
+		{
 			MsgBox, 0x4040, About, %AboutText%`
+		}
 
-
-		 WM_HELP()						; "Help" button action
+		; "Help" button action
+		 WM_HELP()
 		 {
 			run, %Repo%
 			WinClose, About ahk_class #32770
 		 }
+
 	return
 
-
-; ----------------------
+; Subroutine
 	Button_Rename:
+
 		If WinExist(AboutWindow)
 		{
-
 			SetTimer, Button_Rename, Off
 			WinActivate
 			ControlSetText, Button2, &GitHub
-
 		}
-	return
 
+	return
 
 ; Embedded icon data generated by Image2Include.ahk, ### DO NOT CHANGE! ###
 	icon_green(NewHandle := False)
