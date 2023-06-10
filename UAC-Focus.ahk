@@ -11,6 +11,7 @@
 ; -notifyall        start with "Notify always" enabled by default
 ; -beep             start with "Beep on focus" enabled by default
 ; -showtip          display current settings in a tray tooltip at script startup
+; -noflash          do not briefly change tray icon when the UAC window gets focused
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -24,7 +25,7 @@ Process, Priority,, Normal
 ; Vars
 	Version := "v0.6.1"
 	App_Name := "UAC-Focus by lightproof"
-	App_Icon := A_ScriptDir "/assets/icon.ico"
+	global App_Icon := A_ScriptDir "/assets/icon.ico"
 	global Repo := "https://github.com/lightproof/UAC-Focus"
 	PID := DllCall("GetCurrentProcessId")
 
@@ -33,15 +34,15 @@ Process, Priority,, Normal
 
 
 
-; Set app icon
-	if FileExist(App_Icon)
-		Menu, Tray, Icon, %App_Icon%
+; Set app tray icon
+	Gosub TrayIconSet
 
 
 ; Set defaults
-	Notify_Lvl = 0
-	StartupTip = 0
-	Beep = Off
+	global Notify_Lvl = 0
+	global StartupTip = 0
+	global Beep = Off
+	global TrayIconFlash = 1
 
 
 ; Set string names
@@ -76,10 +77,14 @@ Process, Priority,, Normal
 		-beep
 		Start with "Beep on focus" enabled by default.
 		This will sound two short beeps each time the UAC window gets focused.
-		
+
 		-showtip
 		Display current settings in a tray tooltip at script startup.
+
+		-noflash
+		Do not briefly change tray icon when the UAC window gets focused.
 		)
+
 
 
 
@@ -101,16 +106,19 @@ Process, Priority,, Normal
 		if Arg = -beep
 			global Beep := "On"
 
+		if Arg = -noflash
+			global TrayIconFlash := 0
+
 	}
 
-	
+
 ; Request process elevation if not admin
 	Gosub Elevation_check
 
 
 ; Set and/or show the tooltip on startup
 	Gosub Set_Tray_Tooltip
-	
+
 	if (A_IsAdmin and StartupTip = 1)
 		TrayTip, UAC-Focus %Version%, Notify: %Menu_item_name%`nBeep: %Beep%, 3, 0x1
 
@@ -221,9 +229,9 @@ Loop
 				}
 
 				; WinWaitClose, ahk_id %Window_Handle%	; if enabled, stops working with multiple windows
-				
+
 			}
-								
+
 		}
 	}
 }
@@ -231,21 +239,43 @@ Loop
 
 
 ; Subroutines-------------------------------------
-	OnActivateDo:
-	
-			if (Notify_Lvl = "1" or Notify_Lvl = "2")
-			{
-				TrayTip, UAC-Focus, Window focused, 3, 1
+	TrayIconSet:
+		if FileExist(App_Icon)
+			Menu, Tray, Icon, %App_Icon%
+	return
 
-				if Beep = On
-				{
-					Loop, 2
-						SoundBeep, , 100
-				}
+
+; ----------------------
+	TrayIconFlash:
+		SetTimer, TrayIconFlash, Off
+
+		; Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102	; green shield with checkmark
+		; Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239	; blue circled arrows
+		Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297	; green checkmark
+
+		sleep 1500
+		Gosub TrayIconSet
+	return
+
+
+; ----------------------
+	OnActivateDo:
+		if (Notify_Lvl = "1" or Notify_Lvl = "2")
+		{
+			TrayTip, UAC-Focus, Window focused, 3, 1
+
+			if Beep = On
+			{
+				Loop, 2
+					SoundBeep, , 100
 			}
-	return			
-	
-	
+		}
+
+		if TrayIconFlash
+			SetTimer, TrayIconFlash, 10
+	return
+
+
 ; ----------------------
 	Set_Tray_Tooltip:
 		Loop, 3
@@ -296,7 +326,7 @@ Loop
 			if Beep = Off
 			{
 				Beep = On
-				
+
 				Loop, 2
 					SoundBeep, , 100
 			}
