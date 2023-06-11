@@ -195,7 +195,7 @@
 	Menu, OptionID, Check, %Menu_item_name%
 
 	; check/uncheck beep menu
-	if not beep = Off
+	if not beep = "Off"
 	{
 		Menu, OptionID, Check, Beep on focus
 	}
@@ -321,7 +321,7 @@ OnMessage( MsgNum, "ShellMessage" )
 		{
 			TrayTip, UAC-Focus, Window focused, 3, 1
 
-			if not beep = Off
+			if not beep = "Off"
 			{
 				Loop, 2
 					SoundBeep, , 100
@@ -390,7 +390,7 @@ OnMessage( MsgNum, "ShellMessage" )
 		{
 			Menu, OptionID, ToggleCheck, Beep on focus
 
-			if not beep = On
+			if not beep = "On"
 			{
 				beep = On
 				SoundBeep, , 100
