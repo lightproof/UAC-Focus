@@ -68,7 +68,7 @@
 	( LTrim RTrim0 Join
 		Startup parameters:
 		`n`n
-		
+
 		-notify
 		`n
 		Start with ""Notify on focus"" enabled by default.
@@ -80,7 +80,7 @@
 		`n
 		Start with ""Notify always"" enabled by default.
 		`n
-		Same as above, but also display notification if the UAC window 
+		Same as above, but also display notification if the UAC window
 		pops up already focused by the OS.
 		`n`n
 
@@ -147,10 +147,15 @@
 
 ; Tray menu
 	Menu, Tray, Click, 2
-	Menu, Tray, NoStandard		; Standard/NoStandard  = debugging / normal
-	Menu, Tray, Add, &Debug, debug_window
+	Menu, Tray, NoStandard
+
+	; Enable for debug menu
+	; Menu, Tray, Add, &Debug, debug
+	; Menu, Tray, Add
+
 	Menu, Tray, Add, &About, about_box
 	Menu, Tray, Default, &About
+	; Menu, Tray, Default, &Debug
 
 	; Letter «i» in blue circle icon
 	Menu, Tray, Icon, &About, %A_Windir%\system32\SHELL32.dll, 278
@@ -163,7 +168,7 @@
 	Menu, OptionID, Add
 	Menu, OptionID, Add, Beep on focus, notify_toggle
 	Menu, Tray, Add, &Notify, :OptionID
-	
+
 	; White balloon tip with «i» icon
 	; Menu, Tray, Icon, &Notify, %A_Windir%\system32\SHELL32.dll, 222
 
@@ -177,11 +182,11 @@
 
 	Menu, Tray, Add
 	Menu, Tray, Add, &Open file location, open_Location
-	
+
 	; Document with loupe icon
 	Menu, Tray, Icon, &Open file location, %A_Windir%\system32\SHELL32.dll, 56
 	Menu, Tray, Add, &Help, help_box
-	
+
 	; «?» mark in blue circle icon
 	Menu, Tray, Icon, &Help, %A_Windir%\system32\SHELL32.dll, 24
 	Menu, Tray, Add
@@ -209,9 +214,13 @@ OnMessage( MsgNum, "ShellMessage" )
 
 			if (InStr(class, "Credential Dialog Xaml Host")	and InStr(process, "consent.exe"))
 			{
-				; Temporarily change to 'if not' for easier debugging
 				if WinActive (ahk_id lParam)
 				{
+					loop, 4
+					{
+						sleep 75
+						PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %lParam%,,
+					}
 
 					if (beep = "All")
 						SoundBeep, , 100
@@ -221,12 +230,14 @@ OnMessage( MsgNum, "ShellMessage" )
 				}
 				else
 				{
-					WinActivate (ahk_id lParam)
+					loop, 4
+					{
+						sleep 75
+						PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %lParam%,,
+					}
+
 					Gosub activation_followup
 				}
-
-				; If enabled, stops working with multiple windows:
-				; WinWaitClose, ahk_id %lParam%
 			}
 		}
 	}
@@ -234,15 +245,17 @@ OnMessage( MsgNum, "ShellMessage" )
 
 ; ================================================================================================
 ; Functions & subroutines
+	; Esc::Reload
+
+	debug()
+	{
+	ListVars
+	Pause On
+	}
+
 	exit()
 	{
 		ExitApp
-	}
-
-	debug_window()
-	{
-	ListVars
-	pause, on
 	}
 
 	open_Location()
@@ -263,22 +276,22 @@ OnMessage( MsgNum, "ShellMessage" )
 		if FileExist(tray_icon)
 			Menu, Tray, Icon, %tray_icon%
 	return
-	
-	
+
+
 ; Subroutine
 	/*
 	Additional icons to consider:
-	
+
 	Green shield with checkmark icon
 	Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102
-	
+
 	Blue circled arrows icon
 	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239
-	
+
 	Green checkmark icon
 	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297
 	*/
-			 
+
 	do_flash_tray_icon:
 		SetTimer, do_flash_tray_icon, Off
 		Menu, Tray, Icon, %tray_icon_flashed%		; Use embedded icon data
@@ -499,16 +512,16 @@ icon_green(NewHandle := False)
 
 	If
 	( RTrim0 Join
-		!DllCall("Crypt32.dll\CryptStringToBinary", "Ptr", &B64, "UInt", 
+		!DllCall("Crypt32.dll\CryptStringToBinary", "Ptr", &B64, "UInt",
 		0, "UInt", 0x01, "Ptr", 0, "UIntP", DecLen, "Ptr", 0, "Ptr", 0)
 	)
 	   Return False
-	   
+
 	VarSetCapacity(Dec, DecLen, 0)
 
 	If
 	( RTrim0 Join
-		!DllCall("Crypt32.dll\CryptStringToBinary", "Ptr", &B64, "UInt", 
+		!DllCall("Crypt32.dll\CryptStringToBinary", "Ptr", &B64, "UInt",
 		0, "UInt", 0x01, "Ptr", &Dec, "UIntP", DecLen, "Ptr", 0, "Ptr", 0)
 	)
 	   Return False
@@ -517,7 +530,7 @@ icon_green(NewHandle := False)
 	; (JPEG/PNG/GIF) to hBITMAP?" by SKAN
 	; -> http://www.autohotkey.com/board/topic/21213-how-to-convert-image-
 	; data-jpegpnggif-to-hbitmap/?p=139257
-	
+
 	hData := DllCall("Kernel32.dll\GlobalAlloc", "UInt", 2, "UPtr", DecLen, "UPtr")
 	pData := DllCall("Kernel32.dll\GlobalLock", "Ptr", hData, "UPtr")
 	DllCall("Kernel32.dll\RtlMoveMemory", "Ptr", pData, "Ptr", &Dec, "UPtr", DecLen)
