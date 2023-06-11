@@ -32,6 +32,7 @@
 	#WinActivateForce
 	Process, Priority,, Normal
 	SetBatchLines, 2
+	DetectHiddenWindows, On
 
 ; Vars
 	Version := "v0.6.1"
@@ -233,7 +234,6 @@
 ; Shell hook
 Gui +LastFound
 hWnd := WinExist()
-DetectHiddenWindows, On
 
 DllCall( "RegisterShellHookWindow", UInt,hWnd )
 MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
@@ -246,40 +246,35 @@ OnMessage( MsgNum, "ShellMessage" )
 		{
 			WinGet, process, ProcessName, ahk_id %lParam%
 			WinGetClass, class, ahk_id %lParam%
-			global Window_Handle := lParam
 
 			if (InStr(class, "Credential Dialog Xaml Host")
 				and InStr(process, "consent.exe"))
 			{
 				
 				; temporarily change to 'if not' for easier debugging
-				if WinActive (ahk_id Window_Handle)
+				if WinActive (ahk_id lParam)
 				{
 
-					if (notify_lvl = "1" or notify_lvl = "2" and beep = "All")
-					{
+					if (beep = "All")
 						soundbeep, , 100
-					}
 
 					if notify_lvl = 2
-					{
 						TrayTip, UAC-Focus, Already in focus, 3, 1
-					}
 				}
 				else
 				{
-					WinActivate (ahk_id Window_Handle)
+					WinActivate (ahk_id lParam)
 
-					Gosub after_activation
+					Gosub activation_followup
 				}
 
 				; if enabled, stops working with multiple windows:
-				; WinWaitClose, ahk_id %Window_Handle%
+				; WinWaitClose, ahk_id %lParam%
 			}
 		}
 	}
 
-; -------------------------------------
+; ============================================================================
 ; Subroutines
 	set_tray_icon:
 
@@ -316,7 +311,7 @@ OnMessage( MsgNum, "ShellMessage" )
 	return
 
 ; Subroutine
-	after_activation:
+	activation_followup:
 
 		if (notify_lvl = "1" or notify_lvl = "2")
 		{
@@ -387,22 +382,20 @@ OnMessage( MsgNum, "ShellMessage" )
 ; Subroutine
 	notify_toggle:
 
-		if A_ThisMenuItem = Beep on focus		; beep toggle
-		{
-			Menu, OptionID, ToggleCheck, Beep on focus
-
-			if not beep = "On"
+		if (A_ThisMenuItem = "Beep on focus" and not beep = "On")
 			{
 				beep = On
+				Menu, OptionID, Check, Beep on focus
 				SoundBeep, , 100
 				SoundBeep, , 100
 			}
 			else
 			{
 				beep = Off
+				Menu, OptionID, Uncheck, Beep on focus
 			}
-		}
-		else
+
+		if not (A_ThisMenuItem = "Beep on focus")
 		{
 
 			; notify toggle
