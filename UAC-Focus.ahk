@@ -171,7 +171,7 @@
 
 ; Tray menu
 	Menu, Tray, Click, 2
-	Menu, Tray, Standard		; Standard/NoStandard  = debugging / regular
+	Menu, Tray, NoStandard		; Standard/NoStandard  = debugging / normal
 	Menu, Tray, Add, &About, about_box
 	Menu, Tray, Default, &About
 
@@ -251,8 +251,9 @@ OnMessage( MsgNum, "ShellMessage" )
 			if (InStr(class, "Credential Dialog Xaml Host")
 				and InStr(process, "consent.exe"))
 			{
-
-				if not WinActive (ahk_id Window_Handle)
+				
+				; temporarily change to 'if not' for easier debugging
+				if WinActive (ahk_id Window_Handle)
 				{
 
 					if (notify_lvl = "1" or notify_lvl = "2" and beep = "All")
