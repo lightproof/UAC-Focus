@@ -16,6 +16,7 @@
 	-noflash          do not briefly change tray icon when the UAC window gets focused
 */
 
+
 ; Startup settings
 	#NoEnv
 	#SingleInstance Force
@@ -24,29 +25,30 @@
 	SetBatchLines, 2
 	DetectHiddenWindows, On
 
+
 ; Vars
-	Version := "v0.7.0"
+	version := "v0.7.1"
 	app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
-	global tray_icon_green := "HICON:*" . icon_green()
+	global tray_icon_flashed := "HICON:*" . icon_green()
 	global repo := "https://github.com/lightproof/UAC-Focus"
-	Own_PID := DllCall("GetCurrentProcessId")
-	AboutWindow := "About ahk_class #32770 ahk_pid" Own_PID
-	HelpWindow := "Help ahk_class #32770 ahk_pid" Own_PID
+	current_pid := DllCall("GetCurrentProcessId")
+	about_window := "About ahk_class #32770 ahk_pid" current_pid
+	help_window := "Help ahk_class #32770 ahk_pid" current_pid
 
-; Set app tray icon
-	Gosub set_tray_icon
 
 ; Set defaults
 	global notify_lvl := 0
 	global startup_tip := 0
 	global beep := "Off"
-	global tray_icon_flash := 1
+	global tray_flash := 1
+
 
 ; Set string names
 	lvl_name_0 := "Never"
 	lvl_name_1 := "On focus"
 	lvl_name_2 := "Always"
+
 
 ; About window
 	about_text := "
@@ -59,6 +61,7 @@
 
 		" repo "
 	)"
+
 
 ; Help window
 	help_text := "
@@ -103,6 +106,7 @@
 		Do not briefly change tray icon when the UAC window gets focused.
 		)"
 
+
 ; Set startup parameters
 	Loop, %0%
 	{
@@ -110,48 +114,41 @@
 		arg := %A_Index%
 
 		if arg = -notify
-		{
 			global notify_lvl := 1
-		}
 
 		if arg = -notifyall
-		{
 			global notify_lvl := 2
-		}
 
 		if arg = -showtip
-		{
 			startup_tip = 1
-		}
 
 		if arg = -beep
-		{
 			global beep := "On"
-		}
 
 		if arg = -beepall
-		{
 			global beep := "All"
-		}
 
 		if arg = -noflash
-		{
-			global tray_icon_flash := 0
-		}
+			global tray_flash := 0
 	}
+
+
+; Set app tray icon and tooltip
+	Gosub set_tray_icon
+	Gosub set_tray_tooltip
 
 ; Request process elevation if not admin
 	Gosub elevation_check
 
-; Set and/or show the tooltip on startup
-	Gosub set_tray_tooltip
-
+; Show startup tooltip
 	if (A_IsAdmin and startup_tip = 1)
 		TrayTip, UAC-Focus %version%, Notify: %Menu_item_name%`nBeep: %beep%, 3, 0x1
+
 
 ; Tray menu
 	Menu, Tray, Click, 2
 	Menu, Tray, NoStandard		; Standard/NoStandard  = debugging / normal
+	Menu, Tray, Add, &Debug, debug_window
 	Menu, Tray, Add, &About, about_box
 	Menu, Tray, Default, &About
 
@@ -179,7 +176,7 @@
 		Menu, OptionID, Uncheck, Beep on focus
 
 	Menu, Tray, Add
-	Menu, Tray, Add, &Open file location, Open_Location
+	Menu, Tray, Add, &Open file location, open_Location
 	
 	; Document with loupe icon
 	Menu, Tray, Icon, &Open file location, %A_Windir%\system32\SHELL32.dll, 56
@@ -237,13 +234,18 @@ OnMessage( MsgNum, "ShellMessage" )
 
 ; ================================================================================================
 ; Functions & subroutines
-	Exit()
+	exit()
 	{
 		ExitApp
 	}
 
+	debug_window()
+	{
+	ListVars
+	pause, on
+	}
 
-	Open_Location()
+	open_Location()
 	{
 		run, explorer %A_ScriptDir%
 	}
@@ -277,9 +279,9 @@ OnMessage( MsgNum, "ShellMessage" )
 	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297
 	*/
 			 
-	tray_icon_flash:
-		SetTimer, tray_icon_flash, Off
-		Menu, Tray, Icon, %tray_icon_green%		; Use embedded icon data
+	do_flash_tray_icon:
+		SetTimer, do_flash_tray_icon, Off
+		Menu, Tray, Icon, %tray_icon_flashed%		; Use embedded icon data
 		sleep 2000
 		Gosub set_tray_icon
 	return
@@ -297,8 +299,8 @@ OnMessage( MsgNum, "ShellMessage" )
 			SoundBeep, , 100
 		}
 
-		if tray_icon_flash
-			SetTimer, tray_icon_flash, 10
+		if tray_flash
+			SetTimer, do_flash_tray_icon, 10
 	return
 
 
@@ -306,12 +308,17 @@ OnMessage( MsgNum, "ShellMessage" )
 	set_tray_tooltip:
 		Loop, 3
 		{
-			Indx := A_Index - 1		; because notify_lvl starts with 0
+			loop_index := A_Index - 1		; Because notify_lvl starts with 0
 
-			if notify_lvl = %Indx%
+			if notify_lvl = %loop_index%
 			{
-				Menu_item_name := lvl_name_%Indx%
-				Menu, Tray, Tip, UAC-Focus %version%`nNotify: %Menu_item_name%`nBeep: %beep%
+				Menu_item_name := lvl_name_%loop_index%
+				Menu, Tray, Tip,
+				( LTrim
+					UAC-Focus %version%
+					Notify: %Menu_item_name%
+					Beep: %beep%
+				)
 			}
 		}
 
@@ -360,13 +367,12 @@ OnMessage( MsgNum, "ShellMessage" )
 			; notify toggle
 			Loop, 3
 			{
-				Indx = %A_Index%
-				Indx := Indx - 1
-				Menu_item_name := lvl_name_%Indx%
+				loop_index := A_Index - 1		; Because notify_lvl starts with 0
+				Menu_item_name := lvl_name_%loop_index%
 
 				if A_ThisMenuItem = %Menu_item_name%
 				{
-					notify_lvl = %Indx%
+					notify_lvl = %loop_index%
 					Menu, OptionID, Check, %Menu_item_name%
 				}
 				else
@@ -383,7 +389,7 @@ OnMessage( MsgNum, "ShellMessage" )
 ; Subroutine
 	help_box:
 
-		If not WinExist(HelpWindow)
+		If not WinExist(help_window)
 			MsgBox, 0x20, Help, %help_text%
 		else
 			WinActivate
@@ -396,14 +402,14 @@ OnMessage( MsgNum, "ShellMessage" )
 		Gui +OwnDialogs
 		SetTimer, Button_Rename, 10
 
-		If not WinExist(AboutWindow)
+		If not WinExist(about_window)
 			MsgBox, 0x4040, About, %about_text%`
 	return
 
 
 ; Subroutine
 	Button_Rename:
-		If WinExist(AboutWindow)
+		If WinExist(about_window)
 		{
 			SetTimer, Button_Rename, Off
 			WinActivate
