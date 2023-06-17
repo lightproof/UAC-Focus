@@ -22,7 +22,7 @@
 	#SingleInstance Force
 	#WinActivateForce
 	Process, Priority,, Normal
-	SetBatchLines, 2
+	; SetBatchLines, 2
 	DetectHiddenWindows, On
 
 
@@ -150,7 +150,7 @@
 	Menu, Tray, NoStandard
 
 	; Enable for debug menu
-	; Menu, Tray, Add, &Debug, debug
+	Menu, Tray, Add, &Debug, debug
 	; Menu, Tray, Add
 
 	Menu, Tray, Add, &About, about_box
@@ -204,64 +204,68 @@ DllCall( "RegisterShellHookWindow", UInt,hWnd )
 MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
 OnMessage( MsgNum, "ShellMessage" )
 
-	; Main Detect And Focus Loop
 	ShellMessage( wParam,lParam )
 	{
-		If ( wParam = 1 )	; HSHELL_WINDOWCREATED := 1
+		hwnd := lParam
+		WinGet, process, ProcessName, ahk_id %hwnd%
+		WinGetClass, class, ahk_id %hwnd%
+
+		if (InStr(class, "Credential Dialog Xaml Host")	and InStr(process, "consent.exe"))
 		{
-			WinGet, process, ProcessName, ahk_id %lParam%
-			WinGetClass, class, ahk_id %lParam%
-
-			if (InStr(class, "Credential Dialog Xaml Host")	and InStr(process, "consent.exe"))
+			; Detect flashing window
+			if (wParam = 0x8006)	; HSHELL_FLASH
 			{
-				if WinActive (ahk_id lParam)
-				{
-					loop, 4
-					{
-						sleep 75
-						PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %lParam%,,
-					}
-
-					if (beep = "All")
-						SoundBeep, , 100
-
-					if notify_lvl = 2
-						TrayTip, UAC-Focus, Already in focus, 3, 1
-				}
+				if WinActive (ahk_id hwnd)
+					win_already_active(hwnd)
 				else
-				{
-					loop, 4
-					{
-						sleep 75
-						PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %lParam%,,
-					}
+					win_activate(hwnd)
+			}
 
-					Gosub activation_followup
-				}
+			; Detect regular window
+			If ( wParam = 1 )	; HSHELL_WINDOWCREATED := 1
+			{
+				if WinActive (ahk_id hwnd)
+					win_already_active(hwnd)
+				else
+					win_activate(hwnd)
 			}
 		}
 	}
 
 
 ; ================================================================================================
+	^r::Reload
+
+
 ; Functions
-	; ^r::Reload
-
-	debug()
+	win_activate(hwnd)
 	{
-	ListVars
-	Pause On
+			if not (beep = "Off")
+			{
+				SoundBeep, , 100
+				SoundBeep, , 100
+			}
+
+			PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %hwnd%,,
+
+			if (notify_lvl = "1" or notify_lvl = "2")
+				TrayTip, UAC-Focus, Window focused, 3, 1
+
+			if tray_flash
+				SetTimer, do_flash_tray_icon, -10
 	}
 
-	exit()
+
+	win_already_active(hwnd)
 	{
-		ExitApp
+		MsgBox % beep "`n" notify_lvl
+		if (beep = "All")
+			SoundBeep, , 100
+
+		if notify_lvl = 2
+			TrayTip, UAC-Focus, Already in focus, 3, 1
 	}
 
-	open_Location()
-	{
-		run, explorer %A_ScriptDir%
-	}
 
 ; Help button action
 	WM_HELP()
@@ -282,6 +286,25 @@ OnMessage( MsgNum, "ShellMessage" )
 				Break
 			}
 		}
+	}
+
+
+	debug()
+	{
+	ListVars
+	; Pause On
+	}
+
+
+	open_Location()
+	{
+		run, explorer %A_ScriptDir%
+	}
+
+
+	exit()
+	{
+		ExitApp
 	}
 
 
@@ -375,18 +398,21 @@ OnMessage( MsgNum, "ShellMessage" )
 
 ; Subroutine
 	notify_toggle:
-		if (A_ThisMenuItem = "Beep on focus" and not beep = "On")
+		if A_ThisMenuItem = Beep on focus
+		{
+			if beep = On
+			{
+				beep = Off
+				Menu, OptionID, Uncheck, Beep on focus
+			}
+			else
 			{
 				beep = On
 				Menu, OptionID, Check, Beep on focus
 				SoundBeep, , 100
 				SoundBeep, , 100
 			}
-			else
-			{
-				beep = Off
-				Menu, OptionID, Uncheck, Beep on focus
-			}
+		}
 
 		if not (A_ThisMenuItem = "Beep on focus")
 		{
@@ -425,7 +451,7 @@ OnMessage( MsgNum, "ShellMessage" )
 
 ; Subroutine
 	about_box:
-		OnMessage(0x53, "WM_HELP")
+		OnMessage(0x53, "WM_HELP")	; WM_HELP
 		Gui +OwnDialogs
 
 		fn := Func("Button_Rename").Bind(about_window)
