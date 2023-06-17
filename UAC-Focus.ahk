@@ -27,7 +27,7 @@
 
 
 ; Vars
-	version := "v0.7.2"
+	version := "v0.7.3"
 	app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
@@ -126,23 +126,22 @@
 			global beep := "On"
 
 		if arg = -beepall
-			global beep := "All"
+			global beep := "Always"
 
 		if arg = -noflash
 			global tray_flash := 0
 	}
 
+	notify_lvl_name := lvl_name_%notify_lvl%
 
-; Set app tray icon and tooltip
 	set_tray_icon(tray_icon)
-	Gosub set_tray_tooltip
+	set_tray_tooltip()
 
-; Request process elevation if not admin
-	Gosub elevation_check
+	request_process_elevation(args)
 
 ; Show startup tooltip
 	if (A_IsAdmin and startup_tip = 1)
-		TrayTip, UAC-Focus %version%, Notify: %Menu_item_name%`nBeep: %beep%, 3, 0x1
+		TrayTip, UAC-Focus %version%, Notify: %notify_lvl_name%`nBeep: %beep%, 3, 0x1
 
 
 ; Tray menu
@@ -150,7 +149,7 @@
 	Menu, Tray, NoStandard
 
 	; Enable for debug menu
-	Menu, Tray, Add, &Debug, debug
+	; Menu, Tray, Add, &Debug, debug
 	; Menu, Tray, Add
 
 	Menu, Tray, Add, &About, about_box
@@ -169,11 +168,7 @@
 	Menu, OptionID, Add, Beep on focus, notify_toggle
 	Menu, Tray, Add, &Notify, :OptionID
 
-	; White balloon tip with «i» icon
-	; Menu, Tray, Icon, &Notify, %A_Windir%\system32\SHELL32.dll, 222
-
-	Menu_item_name := lvl_name_%notify_lvl%
-	Menu, OptionID, Check, %Menu_item_name%
+	Menu, OptionID, Check, %notify_lvl_name%
 
 	if not (beep = "Off")
 		Menu, OptionID, Check, Beep on focus
@@ -214,12 +209,7 @@ OnMessage( MsgNum, "ShellMessage" )
 		{
 			; Detect flashing window
 			if (wParam = 0x8006)	; HSHELL_FLASH
-			{
-				if WinActive (ahk_id hwnd)
-					win_already_active(hwnd)
-				else
-					win_activate(hwnd)
-			}
+				win_activate(hwnd)
 
 			; Detect regular window
 			If ( wParam = 1 )	; HSHELL_WINDOWCREATED := 1
@@ -234,7 +224,7 @@ OnMessage( MsgNum, "ShellMessage" )
 
 
 ; ================================================================================================
-	^r::Reload
+	; ^r::Reload
 
 
 ; Functions
@@ -259,14 +249,13 @@ OnMessage( MsgNum, "ShellMessage" )
 				TrayTip, UAC-Focus, Window focused, 3, 1
 
 			if tray_flash
-				SetTimer, do_flash_tray_icon, -10
+				SetTimer, flash_tray_icon, -10
 	}
 
 
 	win_already_active(hwnd)
 	{
-		MsgBox % beep "`n" notify_lvl
-		if (beep = "All")
+		if (beep = "Always")
 			SoundBeep, , 100
 
 		if notify_lvl = 2
@@ -280,6 +269,7 @@ OnMessage( MsgNum, "ShellMessage" )
 		WinClose, About ahk_class #32770
 	}
 
+
 	rename_help_button(about_window)
 	{
 		loop, 
@@ -289,6 +279,26 @@ OnMessage( MsgNum, "ShellMessage" )
 				WinActivate
 				ControlSetText, Button2, &GitHub
 				Break
+			}
+		}
+	}
+
+
+	set_tray_tooltip()
+	{
+		Loop, 3
+		{
+			loop_index := A_Index - 1		; Because notify_lvl starts with 0
+
+			if notify_lvl = %loop_index%
+			{
+				notify_lvl_name := lvl_name_%loop_index%
+				Menu, Tray, Tip,
+				( LTrim
+					UAC-Focus %version%
+					Notify: %notify_lvl_name%
+					Beep: %beep%
+				)
 			}
 		}
 	}
@@ -314,52 +324,34 @@ OnMessage( MsgNum, "ShellMessage" )
 
 
 ; Subroutines
-
-
-; Subroutine
-	/*
-	Additional icons to consider:
-
-	Green shield with checkmark
-	Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102
-
-	Blue circled arrows
-	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239
-
-	Green checkmark
-	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297
-	*/
-
-	do_flash_tray_icon:
+	flash_tray_icon:
 		Menu, Tray, Icon, %tray_icon_flashed%		; Use embedded icon data
 		sleep 2000
 		set_tray_icon(tray_icon)
-	return
+		
+		/*
+		Additional icons to consider:
+		
+		White balloon tip with "i"
+		Menu, Tray, Icon, %A_Windir%\system32\shell32.dll, 222
+		
+		Green shield with checkmark
+		Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102
+		
+		Blue circled arrows
+		Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239
 
-
-; Subroutine
-	set_tray_tooltip:
-		Loop, 3
-		{
-			loop_index := A_Index - 1		; Because notify_lvl starts with 0
-
-			if notify_lvl = %loop_index%
-			{
-				Menu_item_name := lvl_name_%loop_index%
-				Menu, Tray, Tip,
-				( LTrim
-					UAC-Focus %version%
-					Notify: %Menu_item_name%
-					Beep: %beep%
-				)
-			}
-		}
+		Green checkmark
+		Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297
+		*/
 
 	return
 
 
+
 ; Subroutine
-	elevation_check:
+	request_process_elevation(args)
+	{
 		if not A_IsAdmin
 		{
 			try
@@ -375,25 +367,26 @@ OnMessage( MsgNum, "ShellMessage" )
 				ExitApp
 			}
 		}
-
-	return
+}
 
 
 ; Subroutine
 	notify_toggle:
 		if A_ThisMenuItem = Beep on focus
 		{
-			if beep = On
-			{
-				beep = Off
-				Menu, OptionID, Uncheck, Beep on focus
-			}
-			else
+			if beep = Off
 			{
 				beep = On
+				TrayTip, UAC-Focus, Beep: %beep%,,1
 				Menu, OptionID, Check, Beep on focus
 				SoundBeep, , 100
 				SoundBeep, , 100
+			}
+			else
+			{
+				beep = Off
+				TrayTip, UAC-Focus, Beep: %beep%,,1
+				Menu, OptionID, Uncheck, Beep on focus
 			}
 		}
 
@@ -404,21 +397,22 @@ OnMessage( MsgNum, "ShellMessage" )
 			Loop, 3
 			{
 				loop_index := A_Index - 1		; Because notify_lvl starts with 0
-				Menu_item_name := lvl_name_%loop_index%
-
-				if A_ThisMenuItem = %Menu_item_name%
+				notify_lvl_name := lvl_name_%loop_index%
+				
+				if A_ThisMenuItem = %notify_lvl_name%
 				{
 					notify_lvl = %loop_index%
-					Menu, OptionID, Check, %Menu_item_name%
+					Menu, OptionID, Check, %notify_lvl_name%
+					TrayTip, UAC-Focus, Notify: %notify_lvl_name%,,1
 				}
 				else
 				{
-					Menu, OptionID, Uncheck, %Menu_item_name%
+					Menu, OptionID, Uncheck, %notify_lvl_name%
 				}
 			}
 		}
 
-		Gosub set_tray_tooltip
+		set_tray_tooltip()
 	return
 
 
