@@ -134,7 +134,7 @@
 
 
 ; Set app tray icon and tooltip
-	Gosub set_tray_icon
+	set_tray_icon(tray_icon)
 	Gosub set_tray_tooltip
 
 ; Request process elevation if not admin
@@ -238,6 +238,13 @@ OnMessage( MsgNum, "ShellMessage" )
 
 
 ; Functions
+	set_tray_icon(tray_icon)
+	{
+		if FileExist(tray_icon)
+			Menu, Tray, Icon, %tray_icon%
+	}
+
+
 	win_activate(hwnd)
 	{
 			if not (beep = "Off")
@@ -267,15 +274,13 @@ OnMessage( MsgNum, "ShellMessage" )
 	}
 
 
-; Help button action
-	WM_HELP()
+	help_button_action()
 	{
 		run, %repo%
 		WinClose, About ahk_class #32770
 	}
 
-; Rename Help button to GitHub
-	Button_Rename(about_window)
+	rename_help_button(about_window)
 	{
 		loop, 
 		{
@@ -309,11 +314,6 @@ OnMessage( MsgNum, "ShellMessage" )
 
 
 ; Subroutines
-; Subroutine
-	set_tray_icon:
-		if FileExist(tray_icon)
-			Menu, Tray, Icon, %tray_icon%
-	return
 
 
 ; Subroutine
@@ -333,24 +333,7 @@ OnMessage( MsgNum, "ShellMessage" )
 	do_flash_tray_icon:
 		Menu, Tray, Icon, %tray_icon_flashed%		; Use embedded icon data
 		sleep 2000
-		Gosub set_tray_icon
-	return
-
-
-; Subroutine
-	activation_followup:
-
-		if (notify_lvl = "1" or notify_lvl = "2")
-			TrayTip, UAC-Focus, Window focused, 3, 1
-
-		if not (beep = "Off")
-		{
-			SoundBeep, , 100
-			SoundBeep, , 100
-		}
-
-		if tray_flash
-			SetTimer, do_flash_tray_icon, -10
+		set_tray_icon(tray_icon)
 	return
 
 
@@ -451,10 +434,10 @@ OnMessage( MsgNum, "ShellMessage" )
 
 ; Subroutine
 	about_box:
-		OnMessage(0x53, "WM_HELP")	; WM_HELP
+		OnMessage(0x53, "help_button_action")	; WM_HELP
 		Gui +OwnDialogs
 
-		fn := Func("Button_Rename").Bind(about_window)
+		fn := Func("rename_help_button").Bind(about_window)
 		SetTimer, % fn, -20		; less than 20ms won't work
 
 		If not WinExist(about_window)
