@@ -10,7 +10,10 @@
   Startup parameters:
 	-notify           start with "Notify on focus" enabled by default
 	-notifyall        start with "Notify always" enabled by default
+	
 	-beep             start with "Beep on focus" enabled by default
+	(temporarily disabled due to issue with flashing windows)
+	
 	-beepall          also beep when the UAC window pops up already focused by the OS
 	-showtip          display current settings in a tray tooltip at script startup
 	-noflash          do not briefly change tray icon when the UAC window gets focused
@@ -27,7 +30,7 @@
 
 
 ; Vars
-	version := "v0.7.3"
+	version := "v0.7.4"
 	app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
@@ -91,10 +94,6 @@
 		This will sound two short beeps each time the UAC window gets focused.
 		`n`n
 
-		-beepall
-		`n
-		Same as above, but also beep once when the UAC window pops up already focused by the OS.
-		`n`n
 
 		-showtip
 		`n
@@ -106,6 +105,10 @@
 		Do not briefly change tray icon when the UAC window gets focused.
 		)"
 
+		; -beepall
+		; `n
+		; Same as above, but also beep once when the UAC window pops up already focused by the OS.
+		; `n`n
 
 ; Set startup parameters
 	Loop, %0%
@@ -125,8 +128,8 @@
 		if arg = -beep
 			global beep := "On"
 
-		if arg = -beepall
-			global beep := "Always"
+		; if arg = -beepall
+			; global beep := "Always"
 
 		if arg = -noflash
 			global tray_flash := 0
@@ -255,8 +258,8 @@ OnMessage( MsgNum, "ShellMessage" )
 
 	win_already_active(hwnd)
 	{
-		if (beep = "Always")
-			SoundBeep, , 100
+		; if (beep = "Always")
+			; SoundBeep, , 100
 
 		if notify_lvl = 2
 			TrayTip, UAC-Focus, Already in focus, 3, 1

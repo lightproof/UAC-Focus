@@ -34,9 +34,9 @@ Start with **Notify always** enabled. Same as above, but also display notificati
 
 Start with **Beep on focus** enabled. This will sound two short beeps each time the UAC window gets focused.
 
-`-beepall`
+[comment]: # (`-beepall`)
 
-Same as above, but also beep once when the UAC window pops up already focused by the OS.
+[comment]: # (Same as above, but also beep once when the UAC window pops up already focused by the OS.)
 
 `-showtip`
 
