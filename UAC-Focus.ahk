@@ -27,14 +27,14 @@
 
 
 ; Vars
-	version := "v0.7.1"
+	version := "v0.7.2"
 	app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
 	global repo := "https://github.com/lightproof/UAC-Focus"
 	current_pid := DllCall("GetCurrentProcessId")
-	about_window := "About ahk_class #32770 ahk_pid" current_pid
-	help_window := "Help ahk_class #32770 ahk_pid" current_pid
+	about_window := "About ahk_class #32770 ahk_pid " current_pid
+	help_window := "Help ahk_class #32770 ahk_pid " current_pid
 
 
 ; Set defaults
@@ -204,10 +204,10 @@ DllCall( "RegisterShellHookWindow", UInt,hWnd )
 MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
 OnMessage( MsgNum, "ShellMessage" )
 
-; Main Detect And Focus Loop
+	; Main Detect And Focus Loop
 	ShellMessage( wParam,lParam )
 	{
-		If ( wParam = 1 )
+		If ( wParam = 1 )	; HSHELL_WINDOWCREATED := 1
 		{
 			WinGet, process, ProcessName, ahk_id %lParam%
 			WinGetClass, class, ahk_id %lParam%
@@ -244,8 +244,8 @@ OnMessage( MsgNum, "ShellMessage" )
 
 
 ; ================================================================================================
-; Functions & subroutines
-	; Esc::Reload
+; Functions
+	; ^r::Reload
 
 	debug()
 	{
@@ -263,14 +263,29 @@ OnMessage( MsgNum, "ShellMessage" )
 		run, explorer %A_ScriptDir%
 	}
 
-
+; Help button action
 	WM_HELP()
 	{
 		run, %repo%
 		WinClose, About ahk_class #32770
 	}
 
+; Rename Help button to GitHub
+	Button_Rename(about_window)
+	{
+		loop, 
+		{
+			If WinExist(about_window)
+			{
+				WinActivate
+				ControlSetText, Button2, &GitHub
+				Break
+			}
+		}
+	}
 
+
+; Subroutines
 ; Subroutine
 	set_tray_icon:
 		if FileExist(tray_icon)
@@ -282,18 +297,17 @@ OnMessage( MsgNum, "ShellMessage" )
 	/*
 	Additional icons to consider:
 
-	Green shield with checkmark icon
+	Green shield with checkmark
 	Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102
 
-	Blue circled arrows icon
+	Blue circled arrows
 	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239
 
-	Green checkmark icon
+	Green checkmark
 	Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 297
 	*/
 
 	do_flash_tray_icon:
-		SetTimer, do_flash_tray_icon, Off
 		Menu, Tray, Icon, %tray_icon_flashed%		; Use embedded icon data
 		sleep 2000
 		Gosub set_tray_icon
@@ -313,7 +327,7 @@ OnMessage( MsgNum, "ShellMessage" )
 		}
 
 		if tray_flash
-			SetTimer, do_flash_tray_icon, 10
+			SetTimer, do_flash_tray_icon, -10
 	return
 
 
@@ -413,21 +427,14 @@ OnMessage( MsgNum, "ShellMessage" )
 	about_box:
 		OnMessage(0x53, "WM_HELP")
 		Gui +OwnDialogs
-		SetTimer, Button_Rename, 10
+
+		fn := Func("Button_Rename").Bind(about_window)
+		SetTimer, % fn, -20		; less than 20ms won't work
 
 		If not WinExist(about_window)
 			MsgBox, 0x4040, About, %about_text%`
-	return
-
-
-; Subroutine
-	Button_Rename:
-		If WinExist(about_window)
-		{
-			SetTimer, Button_Rename, Off
+		else
 			WinActivate
-			ControlSetText, Button2, &GitHub
-		}
 
 	return
 
