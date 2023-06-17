@@ -10,10 +10,10 @@
   Startup parameters:
 	-notify           start with "Notify on focus" enabled by default
 	-notifyall        start with "Notify always" enabled by default
-	
+
 	-beep             start with "Beep on focus" enabled by default
 	(temporarily disabled due to issue with flashing windows)
-	
+
 	-beepall          also beep when the UAC window pops up already focused by the OS
 	-showtip          display current settings in a tray tooltip at script startup
 	-noflash          do not briefly change tray icon when the UAC window gets focused
@@ -30,8 +30,8 @@
 
 
 ; Vars
-	version := "v0.7.4"
-	app_name := "UAC-Focus by lightproof"
+	global version := "v0.7.5"
+	global app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
 	global repo := "https://github.com/lightproof/UAC-Focus"
@@ -225,12 +225,13 @@ OnMessage( MsgNum, "ShellMessage" )
 		}
 	}
 
+Return
 
 ; ================================================================================================
-	; ^r::Reload
+	;  ^r::Reload
 
 
-; Functions
+	; Functions
 	set_tray_icon(tray_icon)
 	{
 		if FileExist(tray_icon)
@@ -252,7 +253,7 @@ OnMessage( MsgNum, "ShellMessage" )
 				TrayTip, UAC-Focus, Window focused, 3, 1
 
 			if tray_flash
-				SetTimer, flash_tray_icon, -10
+				SetTimer, flash_tray_icon, -50
 	}
 
 
@@ -275,7 +276,7 @@ OnMessage( MsgNum, "ShellMessage" )
 
 	rename_help_button(about_window)
 	{
-		loop, 
+		loop,
 		{
 			If WinExist(about_window)
 			{
@@ -331,16 +332,16 @@ OnMessage( MsgNum, "ShellMessage" )
 		Menu, Tray, Icon, %tray_icon_flashed%		; Use embedded icon data
 		sleep 2000
 		set_tray_icon(tray_icon)
-		
+
 		/*
 		Additional icons to consider:
-		
+
 		White balloon tip with "i"
 		Menu, Tray, Icon, %A_Windir%\system32\shell32.dll, 222
-		
+
 		Green shield with checkmark
 		Menu, Tray, Icon, %A_Windir%\system32\imageres.dll, 102
-		
+
 		Blue circled arrows
 		Menu, Tray, Icon, %A_Windir%\System32\shell32.dll, 239
 
@@ -401,7 +402,7 @@ OnMessage( MsgNum, "ShellMessage" )
 			{
 				loop_index := A_Index - 1		; Because notify_lvl starts with 0
 				notify_lvl_name := lvl_name_%loop_index%
-				
+
 				if A_ThisMenuItem = %notify_lvl_name%
 				{
 					notify_lvl = %loop_index%
