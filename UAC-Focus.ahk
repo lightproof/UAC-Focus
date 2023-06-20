@@ -1,8 +1,7 @@
 /*
   UAC-Focus by lightproof
+  An AutoHotKey script that focuses UAC window for quick control with keyboard shortcuts.
 
-  An AutoHotKey script that focuses UAC window for quick control
-  with keyboard shortcuts.
 
   https://github.com/lightproof/UAC-Focus
 
@@ -30,7 +29,7 @@
 
 
 ; Vars
-	global version := "v0.7.5"
+	global version := "v0.7.6"
 	global app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
@@ -144,7 +143,7 @@
 
 ; Show startup tooltip
 	if (A_IsAdmin and startup_tip = 1)
-		TrayTip, UAC-Focus %version%, Notify: %notify_lvl_name%`nBeep: %beep%, 3, 0x1
+		TrayTip, UAC-Focus %version%, Notify: %notify_lvl_name%`nBeep: %beep%,,4
 
 
 ; Tray menu
@@ -250,7 +249,7 @@ Return
 			PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %hwnd%,,
 
 			if (notify_lvl = "1" or notify_lvl = "2")
-				TrayTip, UAC-Focus, Window focused, 3, 1
+				TrayTip, UAC-Focus, Window focused,,4
 
 			if tray_flash
 				SetTimer, flash_tray_icon, -50
@@ -263,7 +262,7 @@ Return
 			; SoundBeep, , 100
 
 		if notify_lvl = 2
-			TrayTip, UAC-Focus, Already in focus, 3, 1
+			TrayTip, UAC-Focus, Already in focus,,4
 	}
 
 
@@ -381,7 +380,7 @@ Return
 			if beep = Off
 			{
 				beep = On
-				TrayTip, UAC-Focus, Beep: %beep%,,1
+				TrayTip, UAC-Focus, Beep: %beep%,,4
 				Menu, OptionID, Check, Beep on focus
 				SoundBeep, , 100
 				SoundBeep, , 100
@@ -389,7 +388,7 @@ Return
 			else
 			{
 				beep = Off
-				TrayTip, UAC-Focus, Beep: %beep%,,1
+				TrayTip, UAC-Focus, Beep: %beep%,,4
 				Menu, OptionID, Uncheck, Beep on focus
 			}
 		}
@@ -407,7 +406,7 @@ Return
 				{
 					notify_lvl = %loop_index%
 					Menu, OptionID, Check, %notify_lvl_name%
-					TrayTip, UAC-Focus, Notify: %notify_lvl_name%,,1
+					TrayTip, UAC-Focus, Notify: %notify_lvl_name%,,4
 				}
 				else
 				{
