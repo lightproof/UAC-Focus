@@ -29,7 +29,7 @@
 
 
 ; Vars
-	global version := "v0.7.7"
+	global version := "v0.7.8"
 	global app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
@@ -244,18 +244,28 @@ Return
 			winactivate
 
 			; PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %hwnd%,,
-			
+
 			if not (beep = "Off")
 			{
 				SoundBeep, , 100
 				SoundBeep, , 100
 			}
-			
+
 			if (notify_lvl = "1" or notify_lvl = "2")
+			{
+
+				; Set flashed icon here first so it is shown in notification tip/toast
+				if tray_flash
+					Menu, Tray, Icon, %tray_icon_flashed%
+
 				TrayTip, UAC-Focus, Window focused,,4
+				set_tray_icon(tray_icon)
+			}
 
 			if tray_flash
+			{
 				SetTimer, flash_tray_icon, -50
+			}
 	}
 
 
