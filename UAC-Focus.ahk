@@ -29,7 +29,7 @@
 
 
 ; Vars
-	global version := "v0.7.6"
+	global version := "v0.7.7"
 	global app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
@@ -227,7 +227,7 @@ OnMessage( MsgNum, "ShellMessage" )
 Return
 
 ; ================================================================================================
-	;  ^r::Reload
+	 ; ^r::Reload
 
 
 	; Functions
@@ -240,14 +240,17 @@ Return
 
 	win_activate(hwnd)
 	{
+			WinWait, ahk_id %hwnd%
+			winactivate
+
+			; PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %hwnd%,,
+			
 			if not (beep = "Off")
 			{
 				SoundBeep, , 100
 				SoundBeep, , 100
 			}
-
-			PostMessage, WM_SYSCOMMAND := 0x0112, SC_HOTKEY := 0xF150, %hwnd%,,
-
+			
 			if (notify_lvl = "1" or notify_lvl = "2")
 				TrayTip, UAC-Focus, Window focused,,4
 
