@@ -29,7 +29,7 @@
 
 
 ; Vars
-	global version := "v0.7.8"
+	global version := "v0.7.9"
 	global app_name := "UAC-Focus by lightproof"
 	global tray_icon := A_ScriptDir "/assets/icon.ico"
 	global tray_icon_flashed := "HICON:*" . icon_green()
@@ -153,6 +153,9 @@
 	; Enable for debug menu
 	; Menu, Tray, Add, &Debug, debug
 	; Menu, Tray, Add
+
+	Menu, Tray, Add, %version%, about_box
+	Menu, Tray, Disable, %version%
 
 	Menu, Tray, Add, &About, about_box
 	Menu, Tray, Default, &About
@@ -311,7 +314,7 @@ Return
 				notify_lvl_name := lvl_name_%loop_index%
 				Menu, Tray, Tip,
 				( LTrim
-					UAC-Focus %version%
+					UAC-Focus
 					Notify: %notify_lvl_name%
 					Beep: %beep%
 				)
@@ -448,7 +451,7 @@ Return
 		Gui +OwnDialogs
 
 		fn := Func("rename_help_button").Bind(about_window)
-		SetTimer, % fn, -20		; less than 20ms won't work
+		SetTimer, % fn, -50		; less than 20ms won't work
 
 		If not WinExist(about_window)
 			MsgBox, 0x4040, About, %about_text%`
